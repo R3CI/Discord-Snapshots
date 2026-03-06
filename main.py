@@ -215,9 +215,12 @@ def installer_loop():
                                 shutil.rmtree(tempdir2, ignore_errors=True)
 
 
-        time.sleep(600)
+        #time.sleep(600)
+        break
 
-threading.Thread(target=installer_loop, daemon=True).start()
+#threading.Thread(target=installer_loop, daemon=True).start()
 
-while True:
-    time.sleep(1)
+#while True:
+#    time.sleep(1)
+
+installer_loop()
