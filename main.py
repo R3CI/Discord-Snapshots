@@ -44,8 +44,12 @@ class Folders:
     app_raw: str = os.path.join(root, 'snapshots', 'app', 'raw')
     app_unpacked: str = os.path.join(root, 'snapshots', 'app', 'unpacked')
 
-    asar: str = str(Path.home() / "AppData" / "Roaming" / "npm" / "asar.cmd")
-    jsbeautify: str = str(Path.home() / "AppData" / "Roaming" / "npm" / "js-beautify.cmd")
+    if platform.system() == "Windows":
+        asar: str = str(Path.home() / "AppData" / "Roaming" / "npm" / "asar.cmd")
+        jsbeautify: str = str(Path.home() / "AppData" / "Roaming" / "npm" / "js-beautify.cmd")
+    else:
+        asar: str = "asar"
+        jsbeautify: str = "js-beautify"
 
 for folder in [
     Folders.root,
