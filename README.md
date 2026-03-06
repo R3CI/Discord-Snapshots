@@ -1,2 +1,1 @@
-# Discord-Snapshots
-This repo snapshots all discord versions packed and unpacked
+soon this repo will host and archive all discord versions 
