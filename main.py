@@ -1,18 +1,38 @@
+# REQUIRMENTS
+
+# Node JS
+# npm install -g @electron/asar
+
+# Python
+# pip install curl_cffi
+# pip install tqdm
+# pip install dataclasses
+# pip install pathlib
+# pip install zipfile
+
+# Other
+# 7zip (IN PATH) 
+
 # r3ci is finally gonna respect the pep rules ???!?!?!?
 import curl_cffi
 from tqdm import tqdm
 from dataclasses import dataclass
+from pathlib import Path
+import zipfile
 import os
 import uuid
 import shutil
+import subprocess
 import threading
 import time
+import sys
+import platform 
 import datetime
 
 @dataclass
 class Folders:
     root: str = os.getcwd()
-    temp = os.path.join(root, 'temp')
+    temp: str = os.path.join(root, 'temp')
 
     installer: str = os.path.join(root, 'snapshots', 'installer')
     installer_raw: str = os.path.join(root, 'snapshots', 'installer', 'raw')
@@ -23,7 +43,7 @@ class Folders:
     app_raw: str = os.path.join(root, 'snapshots', 'app', 'raw')
     app_unpacked: str = os.path.join(root, 'snapshots', 'app', 'unpacked')
 
-    uniextract: str = os.path.join(root, 'external', 'UniExtract', 'UniExtract.exe')
+    asar: str = str(Path.home() / "AppData" / "Roaming" / "npm" / "asar.cmd")
 
 for folder in [
     Folders.root,
@@ -39,11 +59,19 @@ for folder in [
 
 class Utils:
     def uniexcract(i, o):
-        os.system(f'{Folders.uniextract} {i} {o}')
+        os.makedirs(o, exist_ok=True)
+        try:
+            subprocess.run(['7z', 'x', i, f'-o{o}', '-y'], check=True)
+            print(f'Extracted {i} to {o}')
+        except subprocess.CalledProcessError as e:
+            print(f'7-Zip extraction failed: {e}')
 
     def extract_version(file:str):
         version = file.replace('Discord-', '').replace('-full.nupkg', '')
         return version
+    
+    def extract_asar(i, o):
+        subprocess.run([Folders.asar, "extract", i, o], check=True)
 
 
 class DiscordTrolly:
@@ -135,8 +163,33 @@ def installer_loop():
                     elif os.path.isdir(src_path):
                         shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
 
+            shutil.rmtree(tempdir1, ignore_errors=True)
 
-            os.remove(tempdir1)
+            tempdir2 = os.path.join(Folders.temp, uuid.uuid4().hex)
+            layer2_save_dir = os.path.join(Folders.installer_unpacked_layer2, version)
+            raw_app_save_dir = os.path.join(Folders.app_raw, version)
+            unpacked_app_save_dir = os.path.join(Folders.app_unpacked, version)
+
+            os.makedirs(tempdir2, exist_ok=True)
+            os.makedirs(layer2_save_dir, exist_ok=True)
+            os.makedirs(raw_app_save_dir, exist_ok=True)
+            os.makedirs(unpacked_app_save_dir, exist_ok=True)
+
+            for file_name in os.listdir(layer1_save_dir):
+                if file_name.startswith('Discord-'):
+                    with zipfile.ZipFile(os.path.join(layer1_save_dir, file_name), 'r') as zip_ref:
+                        zip_ref.extractall(layer2_save_dir)
+
+                    for root, dirs, files in os.walk(layer2_save_dir):
+                        for file in files:
+                            if file.lower().endswith('.asar'):
+                                full_path = os.path.join(root, file)
+                                asar_unpack_dir = os.path.join(unpacked_app_save_dir, os.path.splitext(file)[0])
+                                os.makedirs(asar_unpack_dir, exist_ok=True)
+                                Utils.extract_asar(full_path, asar_unpack_dir)
+                                shutil.copy2(full_path, raw_app_save_dir)
+                                shutil.rmtree(tempdir2, ignore_errors=True)
+
 
         time.sleep(600)
 
