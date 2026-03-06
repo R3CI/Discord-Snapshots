@@ -2,6 +2,7 @@
 
 # Node JS
 # npm install -g @electron/asar
+# npm install -g js-beautify
 
 # Python
 # pip install curl_cffi
@@ -44,6 +45,7 @@ class Folders:
     app_unpacked: str = os.path.join(root, 'snapshots', 'app', 'unpacked')
 
     asar: str = str(Path.home() / "AppData" / "Roaming" / "npm" / "asar.cmd")
+    jsbeautify: str = str(Path.home() / "AppData" / "Roaming" / "npm" / "js-beautify.cmd")
 
 for folder in [
     Folders.root,
@@ -73,6 +75,23 @@ class Utils:
     def extract_asar(i, o):
         subprocess.run([Folders.asar, "extract", i, o], check=True)
 
+    def beautify_tree(directory):
+        extensions = (".js", ".html", ".css", ".json", ".jsx", ".ts", ".tsx")
+
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                if file.lower().endswith(extensions):
+                    full = os.path.join(root, file)
+
+                    try:
+                        subprocess.run(
+                            [Folders.jsbeautify, "-r", "-f", full],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            check=True
+                        )
+                    except subprocess.CalledProcessError:
+                        pass
 
 class DiscordTrolly:
     def __init__(self):
@@ -187,6 +206,7 @@ def installer_loop():
                                 asar_unpack_dir = os.path.join(unpacked_app_save_dir, os.path.splitext(file)[0])
                                 os.makedirs(asar_unpack_dir, exist_ok=True)
                                 Utils.extract_asar(full_path, asar_unpack_dir)
+                                Utils.beautify_tree(unpacked_app_save_dir)
                                 shutil.copy2(full_path, raw_app_save_dir)
                                 shutil.rmtree(tempdir2, ignore_errors=True)
 
